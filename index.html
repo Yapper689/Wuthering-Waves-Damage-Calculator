@@ -91,12 +91,16 @@
     <h2 class="text-center mb-4">Damage Calculator</h2>
     <form>
         <div class="form-group">
-            <label for="skillRatio">Skill Ratio:</label>
-            <input type="number" class="form-control" id="skillRatio" placeholder="Enter Skill Ratio" step="any">
+            <label for="ATK">ATK (*):</label>
+            <input type="number" class="form-control" id="ATK" placeholder="Enter ATK" step="any">
         </div>
         <div class="form-group">
-            <label for="ATK">ATK:</label>
-            <input type="number" class="form-control" id="ATK" placeholder="Enter ATK" step="any">
+            <label for="critChance">Crit Chance (*) (%):</label>
+            <input type="number" class="form-control" id="critChance" placeholder="Enter Crit Chance" step="any">
+        </div>
+        <div class="form-group">
+            <label for="critMultiplier">Crit Multiplier (*) (%):</label>
+            <input type="number" class="form-control" id="critMultiplier" placeholder="Enter Crit Multiplier" step="any">
         </div>
         <div class="form-group">
             <label for="damageBonus">Damage Bonus (%) (Elemental DMG Bonus, Basic Attack DMG Bonus, ...):</label>
@@ -107,12 +111,20 @@
             <input type="number" class="form-control" id="damageDeepen" placeholder="Enter Damage Deepen %" step="any">
         </div>
         <div class="form-group">
-            <label for="critChance">Crit Chance (%):</label>
-            <input type="number" class="form-control" id="critChance" placeholder="Enter Crit Chance" step="any">
+            <label for="skillRatio">Skill Ratio:</label>
+            <input type="number" class="form-control" id="skillRatio" placeholder="Enter Skill Ratio" step="any">
         </div>
         <div class="form-group">
-            <label for="critMultiplier">Crit Multiplier (%):</label>
-            <input type="number" class="form-control" id="critMultiplier" placeholder="Enter Crit Multiplier" step="any">
+            <label for="worldLevel">World Level (To calculate Enemy DEF):</label>
+            <input type="number" class="form-control" id="worldLevel" placeholder="Enter World Level" step="any">
+        </div>
+        <div class="form-group">
+            <label for="ascensionLevel">Character Ascension Level (To calculate Enemy DEF):</label>
+            <input type="number" class="form-control" id="ascensionLevel" placeholder="Enter Ascension Level" step="any">
+        </div>
+        <div class="form-group">
+            <label for="resistancereduction">Resistance Reduction (Apply when Enemy DEF is provided):</label>
+            <input type="number" class="form-control" id="resistancereduction" placeholder="Enter Applied Resistance Reduction" step="any">
         </div>
         <button type="button" class="btn btn-custom btn-block" onclick="calculateDamage()">Calculate Damage</button>
     </form>
@@ -129,46 +141,60 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-function calculateDamage() {
-    let skillRatio = parseFloat(document.getElementById('skillRatio').value) || 1;
-    let ATK = parseFloat(document.getElementById('ATK').value) || 0;
-    let damageBonus = parseFloat(document.getElementById('damageBonus').value) / 100 || 0;
-    let damageDeepen = parseFloat(document.getElementById('damageDeepen').value) / 100 || 0;
-    let critChance = parseFloat(document.getElementById('critChance').value) / 100 || 0;
-    let critMultiplier = parseFloat(document.getElementById('critMultiplier').value) / 100 || 0;
-    let damageConstant = 0.48;
-    let errorMessage = '';
-
-    if (!ATK) {
-        errorMessage += "ATK cannot be left blank.<br>";
-    }
-    if (!critChance) {
-        errorMessage += "Crit Chance cannot be left blank.<br>";
-    }
-    if (!critMultiplier) {
-        errorMessage += "Crit Multiplier cannot be left blank.<br>";
-    }
-
-    if (errorMessage !== '') {
-        document.getElementById('result').innerHTML = '<div class="error">' + errorMessage + '</div>';
-        return;
-    }
-
-    let totalDamage = skillRatio * ATK * (1 + damageBonus) * (1 + damageDeepen) * damageConstant * (1 + (critChance * (critMultiplier - 1)));
+    function calculateDamage() {
+        let skillRatio = parseFloat(document.getElementById('skillRatio').value) || 1;
+        let ATK = parseFloat(document.getElementById('ATK').value) || 0;
+        let damageBonus = parseFloat(document.getElementById('damageBonus').value) / 100 || 0;
+        let damageDeepen = parseFloat(document.getElementById('damageDeepen').value) / 100 || 0;
+        let critChance = parseFloat(document.getElementById('critChance').value) / 100 || 0;
+        let critMultiplier = parseFloat(document.getElementById('critMultiplier').value) / 100 || 0;
+        let worldLevelInput = document.getElementById('worldLevel').value;
+        let ascensionLevelInput = document.getElementById('ascensionLevel').value;
+        let resistancereduction = parseFloat(document.getElementById('resistancereduction').value) / 100 || 0;
+        let damageConstant = 0.48;
+        let errorMessage = '';
     
-    if (skillRatio) {
-        totalDamage *= skillRatio;
+        if ((worldLevelInput && !ascensionLevelInput) || (!worldLevelInput && ascensionLevelInput)) {
+            errorMessage += "Both World Level and Ascension Level must be provided or left blank.<br>";
+        }
+    
+        let worldLevel = 0;
+        let ascensionLevel = 0;
+        if (worldLevelInput && ascensionLevelInput) {
+            worldLevel = parseFloat(worldLevelInput) || 0;
+            ascensionLevel = parseFloat(ascensionLevelInput) || 0;
+        }
+    
+        if (!ATK) {
+            errorMessage += "ATK cannot be left blank.<br>";
+        }
+        if (!critChance) {
+            errorMessage += "Crit Chance cannot be left blank.<br>";
+        }
+        if (!critMultiplier) {
+            errorMessage += "Crit Multiplier cannot be left blank.<br>";
+        }
+    
+        if (errorMessage !== '') {
+            document.getElementById('result').innerHTML = '<div class="error">' + errorMessage + '</div>';
+            return;
+        }
+    
+        let EnemyResistance = 0;
+        if (worldLevelInput && ascensionLevelInput) {
+            EnemyResistance = 0.5 + 0.02 * (worldLevel + ascensionLevel);
+        }
+    
+        let totalDamage = skillRatio * ATK * (1 + damageBonus) * (1 + damageDeepen) * damageConstant * (1 + (critChance * (critMultiplier - 1)));
+    
+        if (worldLevelInput && ascensionLevelInput) {
+            totalDamage *= (1 - EnemyResistance + resistancereduction);
+        }
+    
+        document.getElementById('result').innerHTML = "<strong>Average Damage Per Attack:</strong> " + totalDamage.toFixed(2);
     }
-    if (damageBonus) {
-        totalDamage *= (1 + damageBonus);
-    }
-    if (damageDeepen) {
-        totalDamage *= (1 + damageDeepen);
-    }
-
-    document.getElementById('result').innerHTML = "<strong>Average Damage Per Attack:</strong> " + totalDamage.toFixed(2);
-}
 </script>
+    
 
 </body>
 </html>
