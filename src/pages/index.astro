@@ -1,0 +1,233 @@
+---
+import bg from '../bg.mp4'
+import icon from '../baizhinerd.ico'
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Yapper">
+    <title>Wuthering Waves Damage Calculator</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<link rel="icon" href={icon} type="image/x-icon">
+    <style>
+        html, body {
+            color: black;
+			font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+			overflow: auto;
+			scrollbar-width: none;
+			-ms-overflow-style: none;
+        }
+		body::-webkit-scrollbar {
+			display: none;
+		}
+        .container {
+			max-width: 700px;
+            max-width: 600px;
+            margin-top: 50px;
+			margin-bottom: 50px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 1s ease-out;
+        }
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .btn-custom {
+            background-color: #29303D;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+			color: white;
+            transition: background-color 0.3s ease;
+        }
+        .btn-custom:hover {
+            background-color: gray;
+        }
+		.hint {
+			font-weight: bold;
+			margin-top: 17px;
+			padding: 9px;
+			background-color: #e9e9e9;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+			text-align: center;
+		}
+		.bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+		.hover-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            z-index: 2;
+        }
+		.top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+            z-index: 2;
+        }
+        .hover-area:hover + .top-bar,
+        .top-bar:hover {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+<video class="bg" src={bg} autoplay muted loop></video>
+<div class="hover-area"></div>
+<div class="top-bar">
+	<button id="collapse" onclick="toggleHide()">Hide</button>
+</div>
+<div id="wrapper" class="container">
+    <h2 class="text-center mb-4">WuWa Damage Calculator</h2>
+    <form>
+        <div class="form-group">
+            <label for="ATK">ATK (*):</label>
+            <input type="number" class="form-control" id="ATK" placeholder="Enter ATK" step="any">
+        </div>
+        <div class="form-group">
+            <label for="critChance">Crit Chance (*) (%):</label>
+            <input type="number" class="form-control" id="critChance" placeholder="Enter Crit Chance" step="any">
+        </div>
+        <div class="form-group">
+            <label for="critMultiplier">Crit Multiplier (*) (%):</label>
+            <input type="number" class="form-control" id="critMultiplier" placeholder="Enter Crit Multiplier" step="any">
+        </div>
+        <div class="form-group">
+            <label for="atkBonus">ATK Bonus (%):</label>
+            <input type="number" class="form-control" id="atkBonus" placeholder="Enter ATK Bonus %" step="any">
+        </div>
+        <div class="form-group">
+            <label for="damageBonus">Damage Bonus (%) (Elemental DMG Bonus, BA DMG Bonus, ...):</label>
+            <input type="number" class="form-control" id="damageBonus" placeholder="Enter Damage Bonus %" step="any">
+        </div>
+        <div class="form-group">
+            <label for="damageDeepen">Damage Deepen / Amplified (%):</label>
+            <input type="number" class="form-control" id="damageDeepen" placeholder="Enter Damage Deepen %" step="any">
+        </div>
+        <div class="form-group">
+            <label for="skillRatio">Skill Ratio (%):</label>
+            <input type="number" class="form-control" id="skillRatio" placeholder="Enter Skill Ratio" step="any">
+        </div>
+        <div class="form-group">
+            <label for="worldLevel">World Level (To calculate Enemy DEF):</label>
+            <input type="number" class="form-control" id="worldLevel" placeholder="Enter World Level" step="any">
+        </div>
+        <div class="form-group">
+            <label for="ascensionLevel">Character Ascension Level (To calculate Enemy DEF):</label>
+            <input type="number" class="form-control" id="ascensionLevel" placeholder="Enter Ascension Level" step="any">
+        </div>
+        <div class="form-group">
+            <label for="resistancereduction">Resistance Reduction (%) (Apply when Enemy DEF is provided):</label>
+            <input type="number" class="form-control" id="resistancereduction" placeholder="Enter Applied Resistance Reduction" step="any">
+        </div>
+        <button type="button" class="btn btn-custom btn-block" onclick="calculateDamage()">Calculate Damage</button>
+        <div class="hint">
+            All enemies have 52% damage reduction
+        </div>
+    </form>
+    <div class="result mt-4" id="result"></div>
+</div>
+
+<script is:inline>
+    function calculateDamage() {
+        let skillRatio = parseFloat(document.getElementById('skillRatio').value) / 100 || 1;
+        let ATK = parseFloat(document.getElementById('ATK').value) || 0;
+        let atkBonus = parseFloat(document.getElementById('atkBonus').value) || 0;
+        let damageBonus = parseFloat(document.getElementById('damageBonus').value) / 100 || 0;
+        let damageDeepen = parseFloat(document.getElementById('damageDeepen').value) / 100 || 0;
+        let critChance = parseFloat(document.getElementById('critChance').value) / 100 || 0;
+        let critMultiplier = parseFloat(document.getElementById('critMultiplier').value) / 100 || 0;
+        let worldLevelInput = document.getElementById('worldLevel').value;
+        let ascensionLevelInput = document.getElementById('ascensionLevel').value;
+        let resistancereduction = parseFloat(document.getElementById('resistancereduction').value) / 100 || 0;
+        let damageConstant = 0.48;
+        let errorMessage = '';
+    
+        if ((worldLevelInput && !ascensionLevelInput) || (!worldLevelInput && ascensionLevelInput)) {
+            errorMessage += "Both World Level and Ascension Level must be provided or left blank.<br>";
+        }
+    
+        let worldLevel = 0;
+        let ascensionLevel = 0;
+        if (worldLevelInput && ascensionLevelInput) {
+            worldLevel = parseFloat(worldLevelInput) || 0;
+            ascensionLevel = parseFloat(ascensionLevelInput) || 0;
+        }
+    
+        if (!ATK) {
+            errorMessage += "ATK cannot be left blank.<br>";
+        }
+        if (!critChance) {
+            errorMessage += "Crit Chance cannot be left blank.<br>";
+        }
+        if (!critMultiplier) {
+            errorMessage += "Crit Multiplier cannot be left blank.<br>";
+        }
+    
+        if (errorMessage !== '') {
+            document.getElementById('result').innerHTML = '<div class="error">' + errorMessage + '</div>';
+            return;
+        }
+    
+        let EnemyResistance = 0;
+        if (worldLevelInput && ascensionLevelInput) {
+            EnemyResistance = 0.5 + 0.02 * (worldLevel + ascensionLevel);
+        }
+    
+        let totalDamage = skillRatio * ATK * (1 + atkBonus / 100) * (1 + damageBonus) * (1 + damageDeepen) * damageConstant * (1 + (critChance * (critMultiplier - 1)));
+    
+        if (worldLevelInput && ascensionLevelInput) {
+            totalDamage *= (1 - EnemyResistance + resistancereduction);
+        }
+    
+        document.getElementById('result').innerHTML = "<strong>Average Damage Per Attack:</strong> " + totalDamage.toFixed(2);
+    }
+
+
+	function toggleHide() {
+    let wrapper = document.querySelector("#wrapper");
+	let collapse = document.querySelector("#collapse");
+    if (wrapper.style.visibility === 'visible' || wrapper.style.visibility === '') {
+        wrapper.style.visibility = 'hidden';
+		collapse.textContent = 'Show';
+    } else {
+        wrapper.style.visibility = 'visible';
+		collapse.textContent = 'Hide';
+    }
+}
+</script>
+    
+</body>
+</html>
